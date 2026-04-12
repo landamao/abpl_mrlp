@@ -1,0 +1,7 @@
+{
+  "冷静期": {
+    "description": "分手冷静期（小时）",
+    "type": "int",
+    "default": 48
+  }
+}
