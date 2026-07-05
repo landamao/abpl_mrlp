@@ -172,6 +172,8 @@ class 每日老婆(Star):
         配对的信息 = self.获取配对信息(群ID, 配对的ID)
         信息['已锁定'] = True
         配对的信息['已锁定'] = True
+        信息['待同意求婚'] = False
+        配对的信息['待同意求婚'] = False
         self.保存数据()
 
     def 已配对(self, event: AiocqhttpMessageEvent) -> tuple[bool, dict]:
@@ -245,7 +247,6 @@ class 每日老婆(Star):
             await 发送CQ码消息(event, 文本)
             return
         self.锁定(群ID, 发送者ID)
-        import base64
 
         # 1. 下载头像（得到字节数据）
         sender_avatar = await 下载头像(f"https://q1.qlogo.cn/g?b=qq&nk={发送者ID}&s=640")
