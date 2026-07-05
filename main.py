@@ -1,10 +1,14 @@
 import asyncio,io, json, math, os, random, time
+import re
 from datetime import date
 from typing import Optional
+
+import base64
+
 from astrbot.api.event import filter
 from PIL import Image as PILImage, ImageDraw, ImageFont
 from astrbot.core.star.star_tools import AiocqhttpMessageEvent, StarTools
-from astrbot.api.all import Star, AstrBotConfig, Context, Plain, Image, Reply, logger
+from astrbot.api.all import Star, AstrBotConfig, Context, Plain, Image, Reply, logger, At
 from .Tools import *
 
 op = time.perf_counter()
@@ -159,6 +163,17 @@ class 每日老婆(Star):
 
         self.保存数据()  # 保存数据
 
+    def 锁定(self, 群ID: str, 用户ID: str):
+        """锁定老婆"""
+        信息 = self.获取配对信息(群ID, 用户ID)
+        if not 信息['已配对']:
+            return
+        配对的ID = 信息['老婆ID']
+        配对的信息 = self.获取配对信息(群ID, 配对的ID)
+        信息['已锁定'] = True
+        配对的信息['已锁定'] = True
+        self.保存数据()
+
     def 已配对(self, event: AiocqhttpMessageEvent) -> tuple[bool, dict]:
         """返回配对状态bool，配对信息dict"""
         信息 = self.获取配对信息(event.get_group_id(), event.get_sender_id())
@@ -202,7 +217,60 @@ class 每日老婆(Star):
             self.分手(群ID, event.get_sender_id())
             await 发送回复文本(event,
                                f"💔 你已解除与{配对名字}（{配对ID}）的伴侣关系\n⏳ {self.冷静期}小时内无法再匹配到一起")
+        elif 消息文本 in ('愿意', '不愿意'):
+            await self.处理愿意(event)
         return
+
+    async def 处理愿意(self, event: AiocqhttpMessageEvent):
+        """处理愿意与不愿意"""
+        消息链 = event.get_messages()
+        text = event.get_message_str()
+        if not isinstance(消息链[0], Reply):
+            return
+        回复文本 = 消息链[0].text
+        pattern = r'（(\d+)）向你求婚啦，你愿意吗\n'
+        match = re.search(pattern, 回复文本)
+        if match:
+            求婚方ID = match.group(1)
+        else:
+            await 发送回复文本(event, "请引用一条带求婚信息的消息")
+            return
+        发送者名字 = event.get_sender_name()
+        发送者ID = event.get_sender_id()
+        群ID = event.get_group_id()
+        求婚方名字 = await 获取成员昵称(event, 求婚方ID)
+        if text == '不愿意':
+            文本 = f"[CQ:at,qq={求婚方ID}]⁢ 💔 很遗憾，对方不接受你的求婚申请"
+            await 发送CQ码消息(event, 文本)
+            return
+        self.锁定(群ID, 发送者ID)
+        import base64
+
+        # 1. 下载头像（得到字节数据）
+        sender_avatar = await 下载头像(f"https://q1.qlogo.cn/g?b=qq&nk={发送者ID}&s=640")
+        proposer_avatar = await 下载头像(f"https://q1.qlogo.cn/g?b=qq&nk={求婚方ID}&s=640")
+
+        # 2. 字节转 Base64 字符串
+        sender_b64 = base64.b64encode(sender_avatar).decode('ascii')
+        proposer_b64 = base64.b64encode(proposer_avatar).decode('ascii')
+
+        # 3. 构造 CQ 图片码
+        sender_img_cq = f"[CQ:image,file=base64://{sender_b64}]"
+        proposer_img_cq = f"[CQ:image,file=base64://{proposer_b64}]"
+
+        # 4. 原有的文字（保留你的零宽空格 \u200b）
+        text = f"结婚成功！\n恭喜 [CQ:at,qq={求婚方ID}]⁢  和 [CQ:at,qq={发送者ID}] 正式结婚啦！"
+
+        # 5. 组合消息（建议两种排版选其一）
+        # 方案A：文字在上，头像在下（更清晰）
+        full_message = f"{text}\n{sender_img_cq}🔗{proposer_img_cq}"
+
+        # 方案B：头像在上，文字在下（视觉冲击强）
+        # full_message = f"{sender_img_cq}\n{proposer_img_cq}\n{text}"
+
+        # 6. 发送
+        await 发送CQ码消息(event, full_message)
+
 
     async def 抽娶老婆(self, event: AiocqhttpMessageEvent):
         群ID = event.get_group_id()
@@ -291,8 +359,11 @@ class 每日老婆(Star):
 
         # 检查对方是否已配对
         艾特方信息 = self.获取配对信息(群ID, 被艾特方ID)
+        if 艾特方信息.get("已锁定", False):
+            await 发送回复文本(event, f"❌ {被艾特方名字}已经结婚啦，换个人试试吧")
+            return
         if 艾特方信息['已配对']:
-            await 发送回复文本(event, f"❌ {被艾特方名字}已经名花有主了，不能许愿")
+            await 发送回复文本(event, f"❌ {被艾特方名字}已经名花有主了，不能许愿，可以使用强娶指令：/强娶 @对方")
             return
 
         # 检查冷静期
@@ -342,7 +413,10 @@ class 每日老婆(Star):
         # 获取对方配对信息
         被艾特方信息 = self.获取配对信息(群ID, 被艾特方ID)
         if not 被艾特方信息['已配对']:
-            await 发送回复文本(event, f"❌ {被艾特方名字}还没有伴侣，请使用“许愿”指令")
+            await 发送回复文本(event, f"❌ {被艾特方名字}还没有伴侣，请使用“许愿”指令：/许愿 @对方")
+            return
+        if 被艾特方信息.get("已锁定", False):
+            await 发送回复文本(event, f"❌ {被艾特方名字}已经结婚啦，换个人试试吧")
             return
 
         # 检查冷静期
@@ -374,6 +448,42 @@ class 每日老婆(Star):
             消息链.append(Plain("[头像加载失败]"))
         消息链.append(Plain("\n💎 好好对待TA哦"))
         yield event.chain_result(消息链)
+
+    @filter.command("求婚", alias={"锁定"})
+    async def 求婚指令(self, event: AiocqhttpMessageEvent):
+        """求婚锁定老婆，让别人无法强娶走，需对方同意"""
+        self.隔天重置()
+        if not (艾特信息 := 获取艾特用户(event)):
+            await 发送回复文本(event, "请指定要求婚的对象（艾特）")
+            return
+        被艾特方ID, 被艾特方名字 = 艾特信息
+        自己ID, 自己名字 = event.get_sender_id(), event.get_sender_name()
+        群ID = event.get_group_id()
+        自己信息 = self.获取配对信息(群ID, 自己ID)
+        老婆ID = 自己信息['老婆ID']
+        老婆信息 = self.获取配对信息(群ID, 老婆ID)
+        if 老婆信息.get("已锁定", False):
+            await 发送回复文本(event, "❌ 对方已经被娶走啦，换个人试试吧")
+            return
+        if 老婆ID != 被艾特方ID:
+            await 发送回复文本(event, "❌ 对方还不是你的伴侣，请先使用`/今日老婆`或`/许愿 @对方`或`/强娶 @对方`与ta成为伴侣")
+            return
+        # 1. 下载自己的头像（字节数据）
+        自己头像_bytes = await 下载头像(f"https://q1.qlogo.cn/g?b=qq&nk={自己ID}&s=640")
+
+        # 2. 字节转 Base64 字符串
+        自己头像_b64 = base64.b64encode(自己头像_bytes).decode('ascii')
+
+        # 4. 原有文本（保留零宽空格和换行）
+        文本 = f"[CQ:at,qq={被艾特方ID}]\n{自己名字}（{自己ID}）[CQ:image,file=base64://{自己头像_b64}]向你求婚啦，你愿意吗\n请引用回复此条信息发送'愿意'/'不愿意'"
+
+        # 6. 发送
+        await 发送CQ码消息(event, 文本)
+        #使用⁢防止被strip()
+        自己信息['待同意求婚'] = True
+        老婆信息['待同意求婚'] = True
+        self.保存数据()
+
 
     @filter.command("老婆菜单")
     async def 老婆菜单指令(self, event: AiocqhttpMessageEvent):

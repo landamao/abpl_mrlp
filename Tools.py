@@ -1,8 +1,25 @@
-__all__ = ["获取成员列表", "获取艾特用户", "发送回复文本", "下载头像", "发送查询结果", "解析黑白名单", "检测黑白名单"]
+__all__ = ["获取成员列表", "获取艾特用户", "发送回复文本", "下载头像", "发送查询结果", "解析黑白名单", "检测黑白名单", "获取成员昵称", "发送CQ码消息"]
 
 import asyncio, aiohttp
 from astrbot.api.all import At, Plain, Image, Reply, logger
 from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import AiocqhttpMessageEvent
+
+async def 获取成员昵称(event: AiocqhttpMessageEvent, 用户ID) -> str:
+    """获取当前群该成员的昵称"""
+    信息 = await event.bot.get_group_member_info(
+        group_id=int(event.get_group_id()),
+        user_id=int(event.get_sender_id()),
+        no_cache=True
+    )
+    return 信息['card'] or 信息['nickname']
+
+async def 发送CQ码消息(event: AiocqhttpMessageEvent, text:str):
+    """发送CQ码消息"""
+    await event.bot.send_msg(
+        user_id=int(event.get_sender_id()) or None,
+        group_id=int(event.get_group_id()) or None,
+        message=text,
+    )
 
 async def 获取成员列表(event: AiocqhttpMessageEvent) -> list[dict[str,str]]:
     """
