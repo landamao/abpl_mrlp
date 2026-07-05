@@ -78,3 +78,82 @@ def 获取艾特用户(event: AiocqhttpMessageEvent) -> tuple[str, str] | None:
                 continue
             return str(seg.qq), seg.name
     return None
+
+
+def 解析黑白名单(原列表: list[str]|set[str], 通配符=None) -> tuple[set[str], set[str]]:
+    """
+    解析原始访问控制列表，返回标准化的白名单和黑名单。
+
+    Args:
+        原列表: 原始字符串列表，如 ["all", "/admin", "user", "/all"]
+        通配符: 匹配的通配符，当匹配到通配符时，列表类型使用第一个
+    Returns:
+        tuple[set, set]: 顺序为黑名单，白名单
+    """
+    if 通配符 is None:
+        通配符 = ['*', 'all']
+    # 跳过非字符串和空字符串
+    原列表 = [ i.strip() for i in 原列表 if isinstance(i, str) and i.strip() ]
+    黑名单 = []
+    白名单 = []
+    if 通配符:
+        if isinstance(通配符, (list, tuple)):
+            t = 通配符[0]
+            tl = 通配符
+        elif isinstance(通配符, str):
+            t = 通配符
+            tl = [通配符]
+        else:
+            raise ValueError("通配符类型错误，应为list or str")
+    else:
+        tl = []
+
+    for i in 原列表:
+
+        # 黑名单判断（以 / 开头）
+        if i.startswith('/'):
+            i = i[1:]  # 去掉前缀 /
+            if not i:
+                continue
+            if i in tl:
+                return {t}, set()
+            黑名单.append(i)
+        else:
+            白名单.append(i)
+
+    # 规范化白名单
+    if any(i in 白名单 for i in tl):
+        白名单 = [t]
+
+    白名单 = [ i for i in 白名单 if i not in 黑名单]
+
+    return set(黑名单), set(白名单)
+
+def 检测黑白名单(值:str, 黑白名单:tuple[set[str], set[str]], 通配符=None) -> bool:
+    if 通配符 is None:
+        通配符 = ['*', 'all']
+    黑名单 = 黑白名单[0]
+    白名单 = 黑白名单[1]
+    if 通配符:
+        if isinstance(通配符, (list, tuple)):
+            t = 通配符[0]
+        elif isinstance(通配符, str):
+            t = 通配符
+        else:
+            raise ValueError("通配符类型错误，应为list or str")
+    else:
+        t = ''
+    if not (黑名单 or 白名单):
+        return False
+    if 黑名单:
+        if t in 黑名单:
+            return False
+        if 值 in 黑名单:
+            return False
+    if 白名单:
+        if t in 白名单:
+            return True
+        if 值 in 白名单:
+            return True
+    # 规范使用通配符，为空则拒绝
+    return False

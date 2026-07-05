@@ -6,6 +6,7 @@ from PIL import Image as PILImage, ImageDraw, ImageFont
 from astrbot.core.star.star_tools import AiocqhttpMessageEvent, StarTools
 from astrbot.api.all import Star, AstrBotConfig, Context, Plain, Image, Reply, logger
 from .Tools import *
+from ...黑白名单 import 解析黑白名单, 检测黑白名单
 
 op = time.perf_counter()
 
@@ -18,6 +19,8 @@ class 每日老婆(Star):
         # { 群ID: { 用户ID: { '已配对': bool, '老婆ID': str, '老婆昵称': str, '分手次数': int,
         #                 '许愿次数': int, '强娶次数': int } } }
         self.冷静期 = config.冷静期
+        self.黑白名单 = 解析黑白名单(config.黑白名单 or ['all'])
+
         self.冷静数据 = {}
         self.数据日期 = date.today()
         # { 群ID: { 用户ID: { 对方ID1: 结束时间戳, 对方ID2: 结束时间戳 } } }
@@ -35,16 +38,6 @@ class 每日老婆(Star):
         self.加载数据()
         # 清理过期的冷静期记录
         self.清理冷静期()
-
-        self.字体路径 = os.path.join(os.path.dirname(__file__), "ldm.ttf")
-        self.font = None
-        if os.path.exists(self.字体路径):
-            try:
-                self.font = ImageFont.truetype(self.字体路径, 20)
-            except Exception as e:
-                logger.warning(f"加载字体失败: {e}，将使用默认字体")
-        else:
-            logger.warning("字体文件 ldm.ttf 不存在，将使用默认字体")
 
         ed = time.perf_counter()
         logger.info(f"今日老婆插件加载完成，耗时{(ed - op):.6f}秒")
@@ -174,10 +167,13 @@ class 每日老婆(Star):
 
     # ---------------------------- 核心功能 ----------------------------
     @filter.event_message_type(filter.EventMessageType.GROUP_MESSAGE)
+    @filter.platform_adapter_type(filter.PlatformAdapterType.AIOCQHTTP)
     async def 接收群消息(self, event: AiocqhttpMessageEvent):
         """接收群消息"""
         消息文本 = event.get_message_str()
         if not 消息文本:
+            return
+        if not 检测黑白名单(event.get_group_id(), self.黑白名单):
             return
 
         if 消息文本 == "查询老婆":
@@ -502,7 +498,15 @@ class 每日老婆(Star):
         draw = ImageDraw.Draw(img)
 
         avatar_size = 100
-        font = self.font or ImageFont.load_default()
+        字体路径 = os.path.join(os.path.dirname(__file__), "ldm.ttf")
+        font = None
+        if os.path.exists(字体路径):
+            try:
+                # 直接用 FreeTypeFont，不进入全局缓存
+                font = ImageFont.FreeTypeFont(字体路径, 20)
+            except Exception as e:
+                logger.warning(f"加载字体失败: {e}，将使用默认字体")
+        font = font or ImageFont.load_default()
         radius = min(width, height) * 0.35
         center_x, center_y = width // 2, height // 2
 
