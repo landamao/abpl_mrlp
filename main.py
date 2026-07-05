@@ -218,6 +218,7 @@ class 每日老婆(Star):
             await 发送回复文本(event,
                                f"💔 你已解除与{配对名字}（{配对ID}）的伴侣关系\n⏳ {self.冷静期}小时内无法再匹配到一起")
         elif 消息文本 in ('愿意', '不愿意'):
+            event.stop_event()
             await self.处理愿意(event)
         return
 
@@ -337,6 +338,8 @@ class 每日老婆(Star):
     @filter.command("许愿")
     async def 许愿指令(self, event: AiocqhttpMessageEvent):
         """直接指定老婆"""
+        if not 检测黑白名单(event.get_group_id(), self.黑白名单):
+            return
         self.隔天重置()
         已配对, 发送者信息 = self.已配对(event)
         if 已配对:
@@ -390,6 +393,8 @@ class 每日老婆(Star):
     @filter.command("强娶")
     async def 强娶指令(self, event: AiocqhttpMessageEvent):
         """强娶已被别人娶走的老婆，若别人未娶走，则提示使用许愿指令"""
+        if not 检测黑白名单(event.get_group_id(), self.黑白名单):
+            return
         self.隔天重置()
         if not (艾特信息 := 获取艾特用户(event)):
             await 发送回复文本(event, "请指定要强娶的对象（艾特）")
@@ -452,6 +457,8 @@ class 每日老婆(Star):
     @filter.command("求婚", alias={"锁定"})
     async def 求婚指令(self, event: AiocqhttpMessageEvent):
         """求婚锁定老婆，让别人无法强娶走，需对方同意"""
+        if not 检测黑白名单(event.get_group_id(), self.黑白名单):
+            return
         self.隔天重置()
         if not (艾特信息 := 获取艾特用户(event)):
             await 发送回复文本(event, "请指定要求婚的对象（艾特）")
@@ -487,6 +494,8 @@ class 每日老婆(Star):
 
     @filter.command("老婆菜单")
     async def 老婆菜单指令(self, event: AiocqhttpMessageEvent):
+        if not 检测黑白名单(event.get_group_id(), self.黑白名单):
+            return
         菜单 = (
             "【今日老婆插件菜单】\n"
             "今日老婆 - 随机抽取一位群友作为老婆\n"
@@ -545,6 +554,8 @@ class 每日老婆(Star):
     @filter.command("老婆关系图")
     async def 老婆关系图指令(self, event: AiocqhttpMessageEvent):
         """生成本群老婆关系图"""
+        if not 检测黑白名单(event.get_group_id(), self.黑白名单):
+            return
         self.隔天重置()
         群ID = event.get_group_id()
         配对数据 = self.配对数据.get(群ID, {})
