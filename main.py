@@ -8,7 +8,7 @@ import base64
 from astrbot.api.event import filter
 from PIL import Image as PILImage, ImageDraw, ImageFont
 from astrbot.core.star.star_tools import AiocqhttpMessageEvent, StarTools
-from astrbot.api.all import Star, AstrBotConfig, Context, Plain, Image, Reply, logger, At
+from astrbot.api.all import Star, AstrBotConfig, Context, Plain, Image, Reply, logger
 from .Tools import *
 
 op = time.perf_counter()
@@ -236,15 +236,23 @@ class 每日老婆(Star):
         if match:
             求婚方ID = match.group(1)
         else:
-            await 发送回复文本(event, "请引用一条带求婚信息的消息")
+            await 发送回复文本(event, "❌ 请引用一条带求婚信息的消息")
             return
-        发送者名字 = event.get_sender_name()
+        # 发送者名字 = event.get_sender_name()
         发送者ID = event.get_sender_id()
         群ID = event.get_group_id()
-        求婚方名字 = await 获取成员昵称(event, 求婚方ID)
+        自己信息 = self.获取配对信息(群ID, 发送者ID)
+        if not 自己信息.get('待同意求婚', False):
+            await 发送回复文本(event, "❌ 没有该求婚记录，可能该求婚已被拒绝或已过期")
+            return
+        求婚方信息 = self.获取配对信息(群ID, 求婚方ID)
+        # 求婚方名字 = await 获取成员昵称(event, 求婚方ID)
         if text == '不愿意':
             文本 = f"[CQ:at,qq={求婚方ID}]⁢ 💔 很遗憾，对方不接受你的求婚申请"
             await 发送CQ码消息(event, 文本)
+            自己信息['待同意求婚'] = False
+            求婚方信息['待同意求婚'] = False
+            self.保存数据()
             return
         self.锁定(群ID, 发送者ID)
 
@@ -468,13 +476,16 @@ class 每日老婆(Star):
         自己ID, 自己名字 = event.get_sender_id(), event.get_sender_name()
         群ID = event.get_group_id()
         自己信息 = self.获取配对信息(群ID, 自己ID)
+        if not 自己信息['已配对']:
+            await 发送回复文本(event, f"❌ 你还没有伴侣哦")
+            return
         老婆ID = 自己信息['老婆ID']
         老婆信息 = self.获取配对信息(群ID, 老婆ID)
         if 老婆信息.get("已锁定", False):
             await 发送回复文本(event, "❌ 对方已经被娶走啦，换个人试试吧")
             return
         if 老婆ID != 被艾特方ID:
-            await 发送回复文本(event, "❌ 对方还不是你的伴侣，请先使用`/今日老婆`或`/许愿 @对方`或`/强娶 @对方`与ta成为伴侣")
+            await 发送回复文本(event, "❌ 对方还不是你的伴侣，请先使用`/今日老婆`或`/许愿 @对方`或`/强娶 @对方`与ta成为伴侣哦~")
             return
         # 1. 下载自己的头像（字节数据）
         自己头像_bytes = await 下载头像(f"https://q1.qlogo.cn/g?b=qq&nk={自己ID}&s=640")
