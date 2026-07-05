@@ -6,7 +6,6 @@ from PIL import Image as PILImage, ImageDraw, ImageFont
 from astrbot.core.star.star_tools import AiocqhttpMessageEvent, StarTools
 from astrbot.api.all import Star, AstrBotConfig, Context, Plain, Image, Reply, logger
 from .Tools import *
-from .Tools import 解析黑白名单, 检测黑白名单
 
 op = time.perf_counter()
 
@@ -18,7 +17,7 @@ class 每日老婆(Star):
         self.配对数据 = {}
         # { 群ID: { 用户ID: { '已配对': bool, '老婆ID': str, '老婆昵称': str, '分手次数': int,
         #                 '许愿次数': int, '强娶次数': int } } }
-        self.冷静期 = config.冷静期
+        self.冷静期 = config.冷静期 or 48
         self.黑白名单 = 解析黑白名单(config.黑白名单 or ['all'])
 
         self.冷静数据 = {}
