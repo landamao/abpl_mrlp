@@ -196,7 +196,7 @@ class 每日老婆(Star):
             self.隔天重置()
             已配对, 信息 = self.已配对(event)
             if 已配对:
-                await 发送查询结果(event, 信息['老婆ID'], 信息['老婆昵称'])
+                await 发送查询结果(event, 信息['老婆ID'], 信息['老婆昵称'], 信息.get("已锁定", False))
             else:
                 await 发送回复文本(event, "❌ 你还没有老婆，请使用“今日老婆”抽取")
         elif 消息文本 == "今日老婆":
@@ -243,7 +243,7 @@ class 每日老婆(Star):
         群ID = event.get_group_id()
         自己信息 = self.获取配对信息(群ID, 发送者ID)
         if not 自己信息.get('待同意求婚', False):
-            await 发送回复文本(event, "❌ 没有该求婚记录，可能该求婚已被拒绝或已过期")
+            await 发送回复文本(event, "❌ 你没有该求婚记录，可能该求婚不是你的，或已被处理或已过期")
             return
         求婚方信息 = self.获取配对信息(群ID, 求婚方ID)
         # 求婚方名字 = await 获取成员昵称(event, 求婚方ID)
@@ -269,14 +269,9 @@ class 每日老婆(Star):
         proposer_img_cq = f"[CQ:image,file=base64://{proposer_b64}]"
 
         # 4. 原有的文字（保留你的零宽空格 \u200b）
-        text = f"结婚成功！\n恭喜 [CQ:at,qq={求婚方ID}]⁢  和 [CQ:at,qq={发送者ID}] 正式结婚啦！"
+        text = f"💒 结婚成功！\n恭喜 [CQ:at,qq={求婚方ID}]⁢  和 [CQ:at,qq={发送者ID}] 正式结婚啦！"
 
-        # 5. 组合消息（建议两种排版选其一）
-        # 方案A：文字在上，头像在下（更清晰）
         full_message = f"{text}\n{sender_img_cq}🔗{proposer_img_cq}"
-
-        # 方案B：头像在上，文字在下（视觉冲击强）
-        # full_message = f"{sender_img_cq}\n{proposer_img_cq}\n{text}"
 
         # 6. 发送
         await 发送CQ码消息(event, full_message)
@@ -291,7 +286,7 @@ class 每日老婆(Star):
 
         已配对, 配对信息 = self.已配对(event)
         if 已配对:
-            await 发送查询结果(event, 配对信息['老婆ID'], 配对信息['老婆昵称'])
+            await 发送查询结果(event, 配对信息['老婆ID'], 配对信息['老婆昵称'], 配对信息.get("已锁定", False))
             return
 
         # 获取群内所有已配对用户的ID
