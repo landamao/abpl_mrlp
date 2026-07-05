@@ -1,4 +1,4 @@
-__all__ = ["获取成员列表", "获取艾特用户", "发送回复文本", "下载头像", "发送查询结果"]
+__all__ = ["获取成员列表", "获取艾特用户", "发送回复文本", "下载头像", "发送查询结果", "解析黑白名单", "检测黑白名单"]
 
 import asyncio, aiohttp
 from astrbot.api.all import At, Plain, Image, Reply, logger

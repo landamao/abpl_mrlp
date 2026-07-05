@@ -6,7 +6,7 @@ from PIL import Image as PILImage, ImageDraw, ImageFont
 from astrbot.core.star.star_tools import AiocqhttpMessageEvent, StarTools
 from astrbot.api.all import Star, AstrBotConfig, Context, Plain, Image, Reply, logger
 from .Tools import *
-from ...黑白名单 import 解析黑白名单, 检测黑白名单
+from .Tools import 解析黑白名单, 检测黑白名单
 
 op = time.perf_counter()
 
