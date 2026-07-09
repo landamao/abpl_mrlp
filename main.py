@@ -139,12 +139,14 @@ class 每日老婆(Star):
         信息['已配对'] = False
         信息['老婆ID'] = ''
         信息['老婆昵称'] = ''
+        信息['已锁定'] = False
         if not 被强娶:
             信息['分手次数'] += 1
 
         配对的信息['已配对'] = False
         配对的信息['老婆ID'] = ''
         配对的信息['老婆昵称'] = ''
+        配对的信息['已锁定'] = False
 
         # 被强娶不记录冷静
         if not 被强娶:
@@ -181,6 +183,19 @@ class 每日老婆(Star):
         信息 = self.获取配对信息(event.get_group_id(), event.get_sender_id())
         return 信息['已配对'], 信息
 
+    @filter.command("今日老婆")
+    async def 今日老婆指令(self, _):
+        """发送今日老婆，获取随机老婆，无需指令前缀也可以"""
+
+    @filter.command("查询老婆")
+    async def 查询老婆指令(self, _):
+        """发送查询老婆，查询今日老婆，无需指令前缀也可以"""
+
+    @filter.command("我要分手")
+    async def 我要分手指令(self, _):
+        """发送我要分手，分手老婆，无需指令前缀也可以"""
+
+
     # ---------------------------- 核心功能 ----------------------------
     @filter.event_message_type(filter.EventMessageType.GROUP_MESSAGE)
     @filter.platform_adapter_type(filter.PlatformAdapterType.AIOCQHTTP)
@@ -216,9 +231,15 @@ class 每日老婆(Star):
             群ID = event.get_group_id()
             配对ID = 信息['老婆ID']
             配对名字 = 信息['老婆昵称']
+            已锁定 = 信息.get('已锁定', False)
             self.分手(群ID, event.get_sender_id())
-            await 发送回复文本(event,
-                               f"💔 你已解除与{配对名字}（{配对ID}）的伴侣关系\n⏳ {self.冷静期}小时内无法再匹配到一起")
+            if 已锁定:
+                文本 = f"[CQ:at,qq={event.get_sender_id()}]⁢ [CQ:at,qq={配对ID}]\n💔 你们离婚了\n⏳ {self.冷静期}小时内无法再匹配到一起"
+                event.stop_event()
+                await 发送CQ码消息(event, 文本)
+            else:
+                await 发送回复文本(event,
+                            f"💔 你已解除与{配对名字}（{配对ID}）的伴侣关系\n⏳ {self.冷静期}小时内无法再匹配到一起")
         elif 消息文本 in ('愿意', '不愿意'):
             event.stop_event()
             await self.处理愿意(event)
@@ -472,7 +493,7 @@ class 每日老婆(Star):
         群ID = event.get_group_id()
         自己信息 = self.获取配对信息(群ID, 自己ID)
         if not 自己信息['已配对']:
-            await 发送回复文本(event, f"❌ 你还没有伴侣哦")
+            await 发送回复文本(event, "❌ 对方还不是你的伴侣，请先使用`/今日老婆`或`/许愿 @对方`或`/强娶 @对方`与ta成为伴侣哦~")
             return
         老婆ID = 自己信息['老婆ID']
         老婆信息 = self.获取配对信息(群ID, 老婆ID)
@@ -489,7 +510,7 @@ class 每日老婆(Star):
         自己头像_b64 = base64.b64encode(自己头像_bytes).decode('ascii')
 
         # 4. 原有文本（保留零宽空格和换行）
-        文本 = f"[CQ:at,qq={被艾特方ID}]\n{自己名字}（{自己ID}）[CQ:image,file=base64://{自己头像_b64}]向你求婚啦，你愿意吗\n请引用回复此条信息发送'愿意'/'不愿意'"
+        文本 = f"[CQ:at,qq={被艾特方ID}]\n{自己名字}（{自己ID}）向你求婚啦，你愿意吗\n对方头像：\n[CQ:image,file=base64://{自己头像_b64}]请引用回复此条信息发送 愿意 或 不愿意"
 
         # 6. 发送
         await 发送CQ码消息(event, 文本)
