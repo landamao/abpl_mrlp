@@ -18,10 +18,12 @@ class 每日老婆(Star):
 
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
+        self.config = config
         self.配对数据 = {}
         # { 群ID: { 用户ID: { '已配对': bool, '老婆ID': str, '老婆昵称': str, '分手次数': int,
         #                 '许愿次数': int, '强娶次数': int } } }
         self.冷静期 = config.冷静期 or 48
+        self.随机匹配发言时间 = max(0, int(config.get("随机匹配发言时间", 0) or 0))
         self.黑白名单 = 解析黑白名单(config.黑白名单 or ['all'])
 
         self.冷静数据 = {}
@@ -313,6 +315,9 @@ class 每日老婆(Star):
             await 发送查询结果(event, 配对信息['老婆ID'], 配对信息['老婆昵称'], 配对信息.get("已锁定", False))
             return
 
+        随机匹配发言时间 = max(0, int(self.config.get("随机匹配发言时间", self.随机匹配发言时间) or 0))
+        最后发言截止 = time.time() - 随机匹配发言时间 * 3600 if 随机匹配发言时间 > 0 else 0
+
         # 获取群内所有已配对用户的ID
         已配对用户 = set()
         if 群ID not in self.配对数据:
@@ -327,6 +332,8 @@ class 每日老婆(Star):
         可娶列表 = []
         for i in 成员列表:
             成员ID = str(i['user_id'])
+            if 最后发言截止 and i.get('last_sent_time', 0) < 最后发言截止:
+                continue
             if 成员ID in 已配对用户:
                 continue
             # 检查冷静期

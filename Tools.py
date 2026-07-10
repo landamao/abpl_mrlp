@@ -41,7 +41,7 @@ async def 获取成员列表(event: AiocqhttpMessageEvent) -> list[dict[str,str]
     # 发送者ID和机器人自身ID
     sid = (event.get_sender_id(), event.get_self_id())
     # 移除发送者和自己和机器人账号
-    新成员列表 = [ {"user_id": str(i["user_id"]), "nickname": i["nickname"], "card": i["card"]}
+    新成员列表 = [ {"user_id": str(i["user_id"]), "nickname": i["nickname"], "card": i["card"], "last_sent_time": i.get("last_sent_time", 0)}
                 for i in 成员列表
                 if (not i["is_robot"]) and (str(i["user_id"]) not in sid)]
 

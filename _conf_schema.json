@@ -4,6 +4,17 @@
     "type": "int",
     "default": 48
   },
+  "随机匹配发言时间": {
+    "description": "随机匹配发言时间限制（小时）",
+    "type": "int",
+    "slider": {
+      "min": 0,
+      "max": 168,
+      "step": 1
+    },
+    "default": 0,
+    "hint": "只影响今日老婆随机匹配；0代表不限制"
+  },
   "黑白名单": {
     "description": "群禁用/启用名单",
     "type": "list",
