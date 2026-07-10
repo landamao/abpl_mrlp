@@ -234,12 +234,15 @@ class 每日老婆(Star):
             已锁定 = 信息.get('已锁定', False)
             self.分手(群ID, event.get_sender_id())
             if 已锁定:
-                文本 = f"[CQ:at,qq={event.get_sender_id()}]⁢ [CQ:at,qq={配对ID}]\n💔 你们离婚了\n⏳ {self.冷静期}小时内无法再匹配到一起"
+                文本 = (f"[CQ:at,qq={event.get_sender_id()}]⁢ [CQ:at,qq={配对ID}]\n"
+                        f"💔 你们离婚了\n⏳ {self.冷静期}小时内无法再匹配到一起\n"
+                        f"剩余分手次数：{self.最大分手次数 - 信息['分手次数']}")
                 event.stop_event()
                 await 发送CQ码消息(event, 文本)
             else:
                 await 发送回复文本(event,
-                            f"💔 你已解除与{配对名字}（{配对ID}）的伴侣关系\n⏳ {self.冷静期}小时内无法再匹配到一起")
+                            f"💔 你已解除与{配对名字}（{配对ID}）的伴侣关系\n⏳ {self.冷静期}小时内无法再匹配到一起\n"
+                            f"剩余分手次数：{self.最大分手次数 - 信息['分手次数']}")
         elif 消息文本 in ('愿意', '不愿意'):
             event.stop_event()
             await self.处理愿意(event)
@@ -356,7 +359,7 @@ class 每日老婆(Star):
             消息链.append(Image.fromBytes(图片数据))
         else:
             消息链.append(Plain("[头像加载失败]"))
-        消息链.append(Plain("\n💎 好好对待TA哦，\n使用 查询老婆 查看详细信息"))
+        消息链.append(Plain("\n💎 好好对待TA哦，\n使用 查询老婆 查看详细信息\n提示，可使用求婚指令防止伴侣被强娶：/求婚 @对方"))
         await event.send(event.chain_result(消息链))
 
     # ---------------------------- 指令 ----------------------------
@@ -412,7 +415,7 @@ class 每日老婆(Star):
             消息链.append(Image.fromBytes(图片数据))
         else:
             消息链.append(Plain("[头像加载失败]"))
-        消息链.append(Plain("\n💎 好好对待TA哦"))
+        消息链.append(Plain(f"\n💎 好好对待TA哦\n剩余许愿次数：{self.最大许愿次数 - 发送者信息['许愿次数']}次"))
         yield event.chain_result(消息链)
 
     @filter.command("强娶")
@@ -459,7 +462,7 @@ class 每日老婆(Star):
         被艾特方原配名字 = 被艾特方信息['老婆昵称']
 
         # 解除原配双方配对，不增加分手次数
-        self.分手(群ID, 被艾特方ID)
+        self.分手(群ID, 被艾特方ID, True)
 
         # 增加强娶次数并建立新配对
         自己信息['强娶次数'] += 1
@@ -476,7 +479,7 @@ class 每日老婆(Star):
             消息链.append(Image.fromBytes(图片数据))
         else:
             消息链.append(Plain("[头像加载失败]"))
-        消息链.append(Plain("\n💎 好好对待TA哦"))
+        消息链.append(Plain(f"\n💎 好好对待TA哦\n剩余许愿次数：{self.最大强娶次数 - 自己信息['强娶次数']}次\n提示，可使用求婚指令防止伴侣被强娶：/求婚 @对方"))
         yield event.chain_result(消息链)
 
     @filter.command("求婚", alias={"锁定"})
