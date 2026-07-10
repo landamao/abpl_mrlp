@@ -523,6 +523,27 @@ class 每日老婆(Star):
         self.保存数据()
 
 
+    @filter.command("老婆次数")
+    async def 老婆次数指令(self, event: AiocqhttpMessageEvent):
+        """查询当前用户今日各项次数和剩余次数"""
+        if not 检测黑白名单(event.get_group_id(), self.黑白名单):
+            return
+        self.隔天重置()
+        信息 = self.获取配对信息(event.get_group_id(), event.get_sender_id())
+        用户ID = event.get_sender_id()
+        用户名 = event.get_sender_name()
+        分手次数 = 信息.get('分手次数', 0)
+        许愿次数 = 信息.get('许愿次数', 0)
+        强娶次数 = 信息.get('强娶次数', 0)
+        文本 = (
+            f"【{用户名}（{用户ID}）的今日老婆次数】\n"
+            f"分手：已用 {分手次数}/{self.最大分手次数}，剩余 {max(0, self.最大分手次数 - 分手次数)} 次\n"
+            f"许愿：已用 {许愿次数}/{self.最大许愿次数}，剩余 {max(0, self.最大许愿次数 - 许愿次数)} 次\n"
+            f"强娶：已用 {强娶次数}/{self.最大强娶次数}，剩余 {max(0, self.最大强娶次数 - 强娶次数)} 次"
+        )
+        await 发送回复文本(event, 文本)
+
+
     @filter.command("老婆菜单")
     async def 老婆菜单指令(self, event: AiocqhttpMessageEvent):
         if not 检测黑白名单(event.get_group_id(), self.黑白名单):
@@ -534,6 +555,7 @@ class 每日老婆(Star):
             f"我要分手 - 与当前伴侣分手（最多{self.最大分手次数}次）\n"
             f"/许愿 @用户 - 指定某位群友作为伴侣（需对方单身，每日最多{self.最大许愿次数}次）\n"
             f"/强娶 @用户 - 强娶已有伴侣的群友（需对方已有伴侣，每日最多{self.最大强娶次数}次）\n"
+            "/老婆次数 - 查询今日分手、许愿、强娶次数和剩余次数\n"
             "/老婆菜单 - 显示本菜单"
         )
         yield event.plain_result(菜单)
