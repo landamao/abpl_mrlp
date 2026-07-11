@@ -7,7 +7,8 @@ import base64
 
 from astrbot.api.event import filter
 from PIL import Image as PILImage, ImageDraw, ImageFont
-from astrbot.core.star.star_tools import AiocqhttpMessageEvent, StarTools
+from astrbot.core.star.star_tools import StarTools
+from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import AiocqhttpMessageEvent
 from astrbot.api.all import Star, AstrBotConfig, Context, Plain, Image, Reply, logger
 from .Tools import *
 

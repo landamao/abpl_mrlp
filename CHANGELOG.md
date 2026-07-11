@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v1.3.1
+
+- 修复上游 ldmbot/AstrBot 更新后 `AiocqhttpMessageEvent` 无法从 `star_tools` 导入导致插件加载失败的问题，改为从正确路径导入。
+
 ## v1.3.0
 
 - 新增滑块配置项 `随机匹配发言时间`，可根据成员列表的 `last_sent_time` 限制 `今日老婆` 只随机匹配最近 N 小时发言过的群友，0 表示不限制。
